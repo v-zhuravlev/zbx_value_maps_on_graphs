@@ -1480,12 +1480,10 @@ class CLineGraphDraw extends CGraphDraw {
 			$units = null;
 			$unitsLong = null;
 			$byteStep = false;
-			$valuemapid = null;
-		    
+
 			for ($item = 0; $item < $this->num; $item++) {
 				if ($this->items[$item]['axisside'] == $side) {
 					// check if items use B or Bps units
-					
 					if ($this->items[$item]['units'] == 'B' || $this->items[$item]['units'] == 'Bps') {
 						$byteStep = true;
 					}
@@ -1495,25 +1493,6 @@ class CLineGraphDraw extends CGraphDraw {
 					elseif ($this->items[$item]['units'] != $units) {
 						$units = '';
 					}
-					
-					
-					
-					//insert here : part that inserts something into $valuemapid ..
-					if (!empty($this->items[$item]['valuemapid']) && 
-							$this->items[$item]['valuemapid'] > 0) {
-						if (is_null($valuemapid)) {
-								$valuemapid = $this->items[$item]['valuemapid'];
-							}
-							elseif ($this->items[$item]['valuemapid'] != $valuemapid) {
-									$valuemapid = false;
-								}
-							}
-							else {
-									$valuemapid = false;
-								}
-							//
-					
-					
 				}
 			}
 
@@ -1623,50 +1602,16 @@ class CLineGraphDraw extends CGraphDraw {
 				if (bccomp(bcadd($val, bcdiv($step, 2)), $maxY) == 1) {
 					continue;
 				}
-				
-				
-				//insert:
-				if (zbx_empty($units) && !empty($valuemapid)) {
-					$str = convert_units(array(
-						'value' => $val,
-						'units' => $units,
-						'convert' => ITEM_CONVERT_WITH_UNITS,
-						'byteStep' => $byteStep,
-						'pow' => $newPow,
-						'ignoreMillisec' => $ignoreMillisec,
-						'length' => $maxLength
-					));
-					
-					
 
-					if(getMappedValue($str, $valuemapid)){ 					//next part removes unmapped values (in else)
-						$str = applyValueMap($str, $valuemapid);
-						//next replaces spaces with \n in axis. except for space preceeding value in template'newvalue (value)'
-						$str = preg_replace("/( )(?![\(\)])/", "\n", $str);
-
-					}
-					else {
-						$str = '';
-					}
-					
-					
-					
-					if (zbx_empty($str))
-							continue;
-					}
-				else {	
-				
-				//
-					$str = convert_units(array(
-						'value' => $val,
-						'units' => $units,
-						'convert' => ITEM_CONVERT_NO_UNITS,
-						'byteStep' => $byteStep,
-						'pow' => $newPow,
-						'ignoreMillisec' => $ignoreMillisec,
-						'length' => $maxLength
-					));
-				}
+				$str = convert_units(array(
+					'value' => $val,
+					'units' => $units,
+					'convert' => ITEM_CONVERT_NO_UNITS,
+					'byteStep' => $byteStep,
+					'pow' => $newPow,
+					'ignoreMillisec' => $ignoreMillisec,
+					'length' => $maxLength
+				));
 
 				if ($side == GRAPH_YAXIS_SIDE_LEFT) {
 					$dims = imageTextSize(8, 0, $str);
@@ -1709,17 +1654,16 @@ class CLineGraphDraw extends CGraphDraw {
 				$posX = $this->sizeX + $this->shiftXleft + 12;
 				$color = $this->getColor(GRAPH_ZERO_LINE_COLOR_RIGHT);
 			}
-			if (empty($valuemapid)) {//remove a value near Y-arrow if value mappings exist
-				imageText(
-					$this->im,
-					8,
-					0,
-					$posX,
-					$this->shiftY + 4,
-					$this->getColor($this->graphtheme['textcolor'], 0),
-					$str
-				);
-			}
+
+			imageText(
+				$this->im,
+				8,
+				0,
+				$posX,
+				$this->shiftY + 4,
+				$this->getColor($this->graphtheme['textcolor'], 0),
+				$str
+			);
 
 			if ($this->zero[$side] != $this->sizeY + $this->shiftY && $this->zero[$side] != $this->shiftY) {
 				zbx_imageline(
@@ -1978,38 +1922,6 @@ class CLineGraphDraw extends CGraphDraw {
 					)),
 					'align' => 2
 				));
-				
-				
-				//
-				if (!empty($this->items[$i]['valuemapid']) && zbx_empty($this->items[$i]['units'])) {
-						
-					
-						
-						$value_maps=getValueMapMappings($this->items[$i]['valuemapid']);
-						$value_text ='';
-						foreach ($value_maps as $vmap) {
-							//print "<br/>";
-							//var_dump($vmap);
-							if ($vmap === end($value_maps))
-								$value_text = $value_text.$vmap['newvalue'].' ('.$vmap['value'].")";
-							else 
-								$value_text = $value_text.$vmap['newvalue'].' ('.$vmap['value']."), ";
-							
-							
-							//print $vmap['newvalue'].' ('.$vmap['value'].')';
-					
-						}
-						
-						$legend->addCell($rowNum, array('text' => $value_text));
-					}
-				else
-				{
-				
-				
-				
-				
-				
-				}
 			}
 			// draw legend of an item without data
 			else {
