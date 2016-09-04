@@ -68,27 +68,3 @@ function applyValueMap($value, $valuemapid) {
 
 	return ($newvalue === false) ? $value : $newvalue.' ('.$value.')';
 }
-
-
-
-/**
- * Get all value map mappings.
- *
- * @param int $valueMapId
- *
- * @return array
- */
-function getValueMapMappings($valueMapId) {
-	$mappings = array();
-
-	$dbMappings = DBselect(
-			'SELECT m.mappingid,m.value,m.newvalue'.
-			' FROM mappings m'.
-			' WHERE m.valuemapid='.zbx_dbstr($valueMapId)
-			);
-	while ($mapping = DBfetch($dbMappings)) {
-		$mappings[$mapping['mappingid']] = $mapping;
-	}
-
-	return $mappings;
-}
