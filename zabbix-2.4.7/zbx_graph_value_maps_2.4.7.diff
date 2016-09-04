@@ -1,0 +1,187 @@
+From bf55c285e90decd7d20e9211f7bb07899489c843 Mon Sep 17 00:00:00 2001
+From: v-zhuravlev <zhuravlev.vitaly@gmail.com>
+Date: Sat, 3 Sep 2016 13:44:36 +0300
+Subject: [PATCH] first version
+
+---
+ CLineGraphDraw.php      |  128 ++-
+ CLineGraphDraw.php.orig | 2524 +++++++++++++++++++++++++++++++++++++++++++++++
+ example.png             |  Bin 0 -> 132663 bytes
+ 3 files changed, 2632 insertions(+), 20 deletions(-)
+ create mode 100644 CLineGraphDraw.php.orig
+ create mode 100644 example.png
+
+diff --git a/CLineGraphDraw.php b/CLineGraphDraw.php
+index 1eb5e15..1587cfd 100644
+--- a/CLineGraphDraw.php
++++ b/CLineGraphDraw.php
+@@ -1480,10 +1480,12 @@ class CLineGraphDraw extends CGraphDraw {
+ 			$units = null;
+ 			$unitsLong = null;
+ 			$byteStep = false;
+-
++			$valuemapid = null;
++		    
+ 			for ($item = 0; $item < $this->num; $item++) {
+ 				if ($this->items[$item]['axisside'] == $side) {
+ 					// check if items use B or Bps units
++					
+ 					if ($this->items[$item]['units'] == 'B' || $this->items[$item]['units'] == 'Bps') {
+ 						$byteStep = true;
+ 					}
+@@ -1493,6 +1495,25 @@ class CLineGraphDraw extends CGraphDraw {
+ 					elseif ($this->items[$item]['units'] != $units) {
+ 						$units = '';
+ 					}
++					
++					
++					
++					//insert here : part that inserts something into $valuemapid ..
++					if (!empty($this->items[$item]['valuemapid']) && 
++							$this->items[$item]['valuemapid'] > 0) {
++						if (is_null($valuemapid)) {
++								$valuemapid = $this->items[$item]['valuemapid'];
++							}
++							elseif ($this->items[$item]['valuemapid'] != $valuemapid) {
++									$valuemapid = false;
++								}
++							}
++							else {
++									$valuemapid = false;
++								}
++							//
++					
++					
+ 				}
+ 			}
+ 
+@@ -1602,16 +1623,50 @@ class CLineGraphDraw extends CGraphDraw {
+ 				if (bccomp(bcadd($val, bcdiv($step, 2)), $maxY) == 1) {
+ 					continue;
+ 				}
++				
++				
++				//insert:
++				if (zbx_empty($units) && !empty($valuemapid)) {
++					$str = convert_units(array(
++						'value' => $val,
++						'units' => $units,
++						'convert' => ITEM_CONVERT_WITH_UNITS,
++						'byteStep' => $byteStep,
++						'pow' => $newPow,
++						'ignoreMillisec' => $ignoreMillisec,
++						'length' => $maxLength
++					));
++					
++					
+ 
+-				$str = convert_units(array(
+-					'value' => $val,
+-					'units' => $units,
+-					'convert' => ITEM_CONVERT_NO_UNITS,
+-					'byteStep' => $byteStep,
+-					'pow' => $newPow,
+-					'ignoreMillisec' => $ignoreMillisec,
+-					'length' => $maxLength
+-				));
++					if(getMappedValue($str, $valuemapid)){ 					//next part removes unmapped values (in else)
++						$str = applyValueMap($str, $valuemapid);
++						//next replaces spaces with \n in axis. except for space preceeding value in template'newvalue (value)'
++						$str = preg_replace("/( )(?![\(\)])/", "\n", $str);
++
++					}
++					else {
++						$str = '';
++					}
++					
++					
++					
++					if (zbx_empty($str))
++							continue;
++					}
++				else {	
++				
++				//
++					$str = convert_units(array(
++						'value' => $val,
++						'units' => $units,
++						'convert' => ITEM_CONVERT_NO_UNITS,
++						'byteStep' => $byteStep,
++						'pow' => $newPow,
++						'ignoreMillisec' => $ignoreMillisec,
++						'length' => $maxLength
++					));
++				}
+ 
+ 				if ($side == GRAPH_YAXIS_SIDE_LEFT) {
+ 					$dims = imageTextSize(8, 0, $str);
+@@ -1654,16 +1709,17 @@ class CLineGraphDraw extends CGraphDraw {
+ 				$posX = $this->sizeX + $this->shiftXleft + 12;
+ 				$color = $this->getColor(GRAPH_ZERO_LINE_COLOR_RIGHT);
+ 			}
+-
+-			imageText(
+-				$this->im,
+-				8,
+-				0,
+-				$posX,
+-				$this->shiftY + 4,
+-				$this->getColor($this->graphtheme['textcolor'], 0),
+-				$str
+-			);
++			if (empty($valuemapid)) {//remove a value near Y-arrow if value mappings exist
++				imageText(
++					$this->im,
++					8,
++					0,
++					$posX,
++					$this->shiftY + 4,
++					$this->getColor($this->graphtheme['textcolor'], 0),
++					$str
++				);
++			}
+ 
+ 			if ($this->zero[$side] != $this->sizeY + $this->shiftY && $this->zero[$side] != $this->shiftY) {
+ 				zbx_imageline(
+@@ -1922,6 +1978,38 @@ class CLineGraphDraw extends CGraphDraw {
+ 					)),
+ 					'align' => 2
+ 				));
++				
++				
++				//
++				if (!empty($this->items[$i]['valuemapid']) && zbx_empty($this->items[$i]['units'])) {
++						
++					
++						
++						$value_maps=getValueMapMappings($this->items[$i]['valuemapid']);
++						$value_text ='';
++						foreach ($value_maps as $vmap) {
++							//print "<br/>";
++							//var_dump($vmap);
++							if ($vmap === end($value_maps))
++								$value_text = $value_text.$vmap['newvalue'].' ('.$vmap['value'].")";
++							else 
++								$value_text = $value_text.$vmap['newvalue'].' ('.$vmap['value']."), ";
++							
++							
++							//print $vmap['newvalue'].' ('.$vmap['value'].')';
++					
++						}
++						
++						$legend->addCell($rowNum, array('text' => $value_text));
++					}
++				else
++				{
++				
++				
++				
++				
++				
++				}
+ 			}
+ 			// draw legend of an item without data
+ 			else {
+-- 
+1.9.5.msysgit.0
+

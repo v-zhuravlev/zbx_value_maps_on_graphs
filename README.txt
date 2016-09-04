@@ -1,1 +1,1 @@
-frontends\php\include\classes\graphdraw\
+patch /var/www/html/zabbix/include/classes/graphdraw/CLineGraphDraw.php /mnt/repos/zbx_graph_value_maps/zbx_graph_value_maps_2.4.7.diff
