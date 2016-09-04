@@ -1,1 +1,1 @@
-patch /var/www/html/zabbix/include/classes/graphdraw/CLineGraphDraw.php /mnt/repos/zbx_graph_value_maps/zbx_graph_value_maps_2.4.7.diff
+patch -i valuemap_3.0.4.patch
